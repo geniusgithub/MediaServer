@@ -5,6 +5,7 @@ package com.github.mediaserver.server;
 
 import android.app.Service;
 import android.content.Intent;
+import android.net.wifi.WifiManager.MulticastLock;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -13,6 +14,7 @@ import com.github.mediaserver.server.center.DMSWorkThread;
 import com.github.mediaserver.server.center.IBaseEngine;
 import com.github.mediaserver.server.center.MediaStoreCenter;
 import com.github.mediaserver.util.CommonLog;
+import com.github.mediaserver.util.CommonUtil;
 import com.github.mediaserver.util.DlnaUtils;
 import com.github.mediaserver.util.LogFactory;
 
@@ -32,7 +34,7 @@ public class DMSService extends Service implements IBaseEngine{
 	private static final int DELAY_TIME = 1000;
 	
 	private MediaStoreCenter mMediaStoreCenter;
-	
+	private MulticastLock mMulticastLock;
 	@Override
 	public IBinder onBind(Intent intent) {
 		return null;
@@ -95,6 +97,9 @@ public class DMSService extends Service implements IBaseEngine{
 		mMediaStoreCenter.clearWebFolder();
 		mMediaStoreCenter.createWebFolder();
 		mMediaStoreCenter.doScanMedia();
+		
+		mMulticastLock = CommonUtil.openWifiBrocast(this);
+		log.e("openWifiBrocast = "  +  mMulticastLock != null ? true : false);
 	}
 
 	
@@ -103,6 +108,12 @@ public class DMSService extends Service implements IBaseEngine{
 		removeStartMsg();
 		removeRestartMsg();
 		mMediaStoreCenter.clearAllData();
+		
+		if (mMulticastLock != null){
+			mMulticastLock.release();
+			mMulticastLock = null;
+			log.e("closeWifiBrocast");
+		}
 	}
 
 	private void delayToSendStartMsg(){
